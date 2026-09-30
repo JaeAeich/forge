@@ -1,0 +1,18 @@
+# runtime data (database, cloned repos)
+data/
+
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.ruff_cache/
+
+# web
+web/node_modules/
+web/dist/
+web/*.tsbuildinfo
+
+# nix
+result
+.direnv/

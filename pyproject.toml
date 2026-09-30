@@ -1,0 +1,58 @@
+[project]
+name = "forge"
+version = "0.1.0"
+description = "Task factory: mine -> validate -> rollout -> adversarial QA"
+readme = "README.md"
+authors = [
+    { name = "Javed Habib", email = "100477031+JaeAeich@users.noreply.github.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "docker>=7.2.0",
+    "fastapi>=0.142.2",
+    "httpx>=0.28.1",
+    "kubernetes>=31",
+    "nats-py>=2.16.0",
+    "numpy>=2.5.3",
+    "pgvector>=0.5.0",
+    "prometheus-client>=0.26.0",
+    "psycopg-pool>=3.3.3",
+    "psycopg[binary]>=3.3.6",
+    "pydantic-settings>=2.15.0",
+    "tree-sitter>=0.26.0",
+    "tree-sitter-python>=0.25.0",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[project.scripts]
+forge = "forge.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.9.28,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "ruff>=0.16.10",
+    "ty>=0.0.85",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ANN001", "ANN201", "ANN202"]
+ignore = ["E501", "SIM105", "RUF012", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["ANN"]
+"scripts/**" = ["ANN"]
+
+[tool.ty.environment]
+python-version = "3.12"
+
+[tool.ty.src]
+# images/ holds code that runs inside sandbox images, with their own dependencies
+exclude = ["src/forge/images"]

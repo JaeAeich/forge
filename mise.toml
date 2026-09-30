@@ -1,0 +1,72 @@
+[tools]
+python = "3.12"
+uv = "latest"
+node = "22"
+nats-server = "latest"
+go = "1.26"
+kubeconform = "0.8"
+
+[tasks.setup]
+description = "Install dependencies and pull the models"
+run = ["uv sync", "npm --prefix web install", "ollama pull qwen2.5-coder:14b", "ollama pull embeddinggemma"]
+
+[tasks.infra]
+description = "Start Postgres (pgvector), NATS and the image registry in Docker"
+run = "docker compose up -d --wait postgres nats registry"
+
+[tasks.up]
+description = "Run forge locally: API + UI + workers in one process, and start the pipeline"
+depends = ["infra", "web"]
+run = "uv run forge up --start"
+
+[tasks.web]
+description = "Build the UI into web/dist"
+run = "npm --prefix web run build"
+
+[tasks.dev]
+description = "UI dev server with hot reload (proxies /api to :8000)"
+run = "npm --prefix web run dev"
+
+[tasks."operator:generate"]
+description = "Regenerate deepcopy code, CRDs and RBAC from the Go API types"
+dir = "operator"
+run = "go tool controller-gen object paths=./api/... crd output:crd:dir=../deploy/operator/crd rbac:roleName=forge-sandbox-operator output:rbac:dir=../deploy/operator/rbac paths=./..."
+
+[tasks."operator:test"]
+description = "Operator unit + integration tests (envtest: a real kube-apiserver and etcd)"
+dir = "operator"
+run = ["go vet ./...", "go test ./..."]
+
+[tasks."operator:run"]
+description = "Run the sandbox operator against the current kubectl context"
+dir = "operator"
+run = "go run ./cmd --leader-elect=false"
+
+[tasks.manifests]
+description = "Render and validate every Kubernetes manifest"
+run = "{ kubectl kustomize deploy/k8s; echo ---; kubectl kustomize deploy/operator; } | kubeconform -summary -strict -ignore-missing-schemas"
+
+[tasks.lint]
+run = [
+  "uv run ruff check src tests scripts",
+  "uv run ruff format --check src tests scripts",
+  "npm --prefix web run lint",
+]
+
+[tasks.typecheck]
+run = ["uv run ty check src", "npm --prefix web run typecheck"]
+
+[tasks.test]
+description = "Unit + integration tests (integration tests need `mise run infra`)"
+run = "uv run pytest -q tests"
+
+[tasks.check]
+description = "Everything CI runs"
+depends = ["lint", "typecheck", "test", "operator:test"]
+
+[tasks.bench]
+run = "uv run forge bench all"
+
+[tasks.demo]
+description = "Record docs/demo.gif (needs the UI running on :8000)"
+run = "uv run --with playwright python scripts/demo.py"
