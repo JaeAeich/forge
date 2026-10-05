@@ -1,0 +1,22 @@
+# kubectl apply -k deploy/operator
+# The Sandbox / SandboxSnapshot operator. Needs a CSI driver with VolumeSnapshot support and the
+# snapshot-controller (both standard on EKS, GKE and AKS; see deploy/platform for kind).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: forge-system
+resources:
+  - namespace.yaml
+  - crd/sandbox.forge.dev_sandboxes.yaml
+  - crd/sandbox.forge.dev_sandboxsnapshots.yaml
+  - rbac/role.yaml
+  - rbac.yaml
+  - manager.yaml
+images:
+  - name: forge-operator
+    newName: ghcr.io/your-org/forge-operator
+    newTag: latest
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: forge
+      app.kubernetes.io/component: sandbox-operator
+    includeSelectors: false

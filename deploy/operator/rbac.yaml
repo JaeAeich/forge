@@ -1,0 +1,31 @@
+# rbac/role.yaml (the ClusterRole) is generated from the controllers' +kubebuilder:rbac markers.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: forge-sandbox-operator
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: forge-sandbox-operator
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: forge-sandbox-operator }
+subjects:
+  - { kind: ServiceAccount, name: forge-sandbox-operator, namespace: forge-system }
+---
+# leader election: only one replica reconciles at a time
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: forge-sandbox-operator-leader
+rules:
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch, delete]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: forge-sandbox-operator-leader
+roleRef: { apiGroup: rbac.authorization.k8s.io, kind: Role, name: forge-sandbox-operator-leader }
+subjects:
+  - { kind: ServiceAccount, name: forge-sandbox-operator }

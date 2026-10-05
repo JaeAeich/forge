@@ -1,0 +1,81 @@
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: forge-sandbox-operator
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - persistentvolumeclaims
+  - pods
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - events.k8s.io
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+- apiGroups:
+  - networking.k8s.io
+  resources:
+  - networkpolicies
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
+- apiGroups:
+  - sandbox.forge.dev
+  resources:
+  - sandboxes
+  verbs:
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - sandbox.forge.dev
+  resources:
+  - sandboxes/finalizers
+  - sandboxsnapshots/finalizers
+  verbs:
+  - update
+- apiGroups:
+  - sandbox.forge.dev
+  resources:
+  - sandboxes/status
+  - sandboxsnapshots/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - sandbox.forge.dev
+  resources:
+  - sandboxsnapshots
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - watch
