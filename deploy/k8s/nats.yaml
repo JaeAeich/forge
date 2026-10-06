@@ -1,0 +1,15 @@
+# The job stream, declared here and managed by NACK; NATS itself comes from its Helm chart (deploy/platform).
+# Workers create one durable pull consumer per job kind on it.
+apiVersion: jetstream.nats.io/v1beta2
+kind: Stream
+metadata:
+  name: forge-jobs
+spec:
+  name: FORGE_JOBS
+  subjects: ["forge.jobs.>"]
+  retention: workqueue
+  storage: file
+  replicas: 3
+  duplicateWindow: 2m # >= the re-announce interval: the sweeper's repeats are deduplicated
+  maxMsgsPerSubject: 100000
+  discard: old # a dropped announcement is harmless, the job is still queued in Postgres

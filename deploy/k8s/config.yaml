@@ -1,0 +1,19 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: forge
+data:
+  FORGE_NATS_URL: nats://nats:4222
+  FORGE_OLLAMA_URL: http://ollama.inference.svc.cluster.local:11434
+  FORGE_MODEL: qwen2.5-coder:14b
+  FORGE_LOG_FORMAT: json
+  FORGE_DATA: /data
+  FORGE_SHUTDOWN_GRACE_SECONDS: "60"
+  # Sandboxes are Sandbox resources run by the forge operator (deploy/operator), in this namespace.
+  # Pin images by digest in production: task snapshots are keyed on the sandbox image name.
+  FORGE_SANDBOX_BACKEND: kubernetes
+  FORGE_SANDBOX_IMAGE: ghcr.io/your-org/forge-sandbox:latest
+  FORGE_ENV_APP_IMAGE: ghcr.io/your-org/forge-env-app:latest
+  FORGE_SANDBOX_RUNTIME_CLASS: gvisor
+  FORGE_SANDBOX_DISK: 4Gi
+# FORGE_DATABASE_URL comes from the `forge-db-app` Secret that CloudNativePG generates (key: uri).

@@ -1,0 +1,89 @@
+# Workers are ordinary pods: sandboxes run as separate pods (see deploy/operator), so a worker needs no
+# Docker socket and no privileges. KEDA scales them on the job backlog in Postgres.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  selector:
+    matchLabels: { app: worker }
+  template:
+    metadata:
+      labels: { app: worker }
+    spec:
+      serviceAccountName: forge
+      terminationGracePeriodSeconds: 90 # > FORGE_SHUTDOWN_GRACE_SECONDS: drain, then hand back running jobs
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: worker
+          image: forge
+          args: ["forge", "worker"]
+          envFrom: [{ configMapRef: { name: forge } }]
+          env:
+            - name: FORGE_DATABASE_URL
+              valueFrom: { secretKeyRef: { name: forge-db-app, key: uri } }
+            - name: FORGE_WORKERS
+              value: "4"
+            - name: HOME # read-only root filesystem; git wants a writable home
+              value: /tmp
+            # sandboxes are owned by this pod: if it goes away, so do they
+            - name: FORGE_POD_NAME
+              valueFrom: { fieldRef: { fieldPath: metadata.name } }
+            - name: FORGE_POD_UID
+              valueFrom: { fieldRef: { fieldPath: metadata.uid } }
+          resources:
+            requests: { cpu: 500m, memory: 1Gi }
+            limits: { memory: 2Gi }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: [ALL] }
+          volumeMounts:
+            - { name: data, mountPath: /data } # git clones of the source repos (a cache)
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: data
+          emptyDir: { sizeLimit: 20Gi }
+        - name: tmp
+          emptyDir: {}
+---
+# One worker per 4 runnable or running jobs (FORGE_WORKERS=4). Running jobs count too, so busy workers
+# aren't scaled away; a worker that is scaled down hands its jobs back before it exits.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata:
+  name: worker
+spec:
+  scaleTargetRef: { name: worker }
+  minReplicaCount: 1
+  maxReplicaCount: 20
+  cooldownPeriod: 300
+  triggers:
+    - type: postgresql
+      authenticationRef: { name: forge-db }
+      metadata:
+        query: >-
+          SELECT count(*) FROM jobs
+          WHERE status IN ('queued', 'running') AND run_after <= extract(epoch FROM now())
+        targetQueryValue: "4"
+---
+apiVersion: keda.sh/v1alpha1
+kind: TriggerAuthentication
+metadata:
+  name: forge-db
+spec:
+  secretTargetRef:
+    - { parameter: connection, name: forge-db-app, key: uri }
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: worker
+spec:
+  maxUnavailable: 25%
+  selector:
+    matchLabels: { app: worker }

@@ -1,0 +1,21 @@
+# kubectl apply -k deploy/k8s
+# Prerequisites: the platform operators (deploy/platform) and the sandbox operator (deploy/operator).
+# Override images/replicas with kustomize overlays per environment.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: forge
+resources:
+  - namespace.yaml
+  - config.yaml
+  - postgres.yaml
+  - rbac.yaml
+  - nats.yaml
+  - api.yaml
+  - worker.yaml
+images:
+  - name: forge
+    newName: ghcr.io/your-org/forge
+    newTag: latest
+labels:
+  - pairs:
+      app.kubernetes.io/part-of: forge

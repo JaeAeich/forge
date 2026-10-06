@@ -1,0 +1,23 @@
+# Postgres via the CloudNativePG operator: 3 instances (1 primary, 2 streaming replicas), automatic failover.
+# The "standard" image ships pgvector, which the code index needs.
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: forge-db
+spec:
+  instances: 3
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.3-standard-trixie
+  storage:
+    size: 50Gi
+  postgresql:
+    parameters:
+      max_connections: "400"
+      shared_buffers: 1GB
+  bootstrap:
+    initdb:
+      database: forge
+      owner: forge
+      postInitApplicationSQL:
+        - CREATE EXTENSION IF NOT EXISTS vector
+  monitoring:
+    enablePodMonitor: true

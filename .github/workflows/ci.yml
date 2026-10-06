@@ -1,0 +1,85 @@
+name: ci
+on:
+  push: { branches: [main] }
+  pull_request:
+
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg17
+        env: { POSTGRES_USER: forge, POSTGRES_PASSWORD: forge, POSTGRES_DB: forge }
+        ports: ["5433:5432"]
+        options: --health-cmd "pg_isready -U forge" --health-interval 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start NATS (JetStream)
+        run: docker run -d --name nats -p 4222:4222 nats:2.11-alpine -js
+      - uses: astral-sh/setup-uv@v6
+      - run: uv sync --frozen
+      - run: uv run ruff check src tests scripts
+      - run: uv run ruff format --check src tests scripts
+      - run: uv run ty check src
+      - run: uv run pytest -q tests
+
+  web:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run build
+
+  operator:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: operator } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: operator/go.mod, cache-dependency-path: operator/go.sum }
+      - run: test -z "$(gofmt -l .)"
+      - run: go vet ./...
+      - name: Generated code and manifests are up to date
+        run: |
+          go tool controller-gen object paths=./api/... crd output:crd:dir=../deploy/operator/crd \
+            rbac:roleName=forge-sandbox-operator output:rbac:dir=../deploy/operator/rbac paths=./...
+          git diff --exit-code
+      - run: go test -race ./... # integration tests run against a real API server (envtest)
+
+  deploy-manifests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker compose config -q
+      - run: |
+          kubectl kustomize deploy/k8s > rendered.yaml
+          kubectl kustomize deploy/operator >> rendered.yaml
+      - uses: docker://ghcr.io/yannh/kubeconform:latest
+        with: { args: "-summary -strict -ignore-missing-schemas rendered.yaml" }
+
+  images:
+    runs-on: ubuntu-latest
+    needs: [python, web, operator]
+    strategy:
+      matrix:
+        include:
+          - { name: forge, context: ., file: Dockerfile }
+          - { name: forge-operator, context: operator, file: operator/Dockerfile }
+          - { name: forge-sandbox, context: src/forge/images, file: src/forge/images/sandbox.Dockerfile }
+          - { name: forge-env-app, context: src/forge/images/env-app, file: src/forge/images/env-app/Dockerfile }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: false
+          tags: ${{ matrix.name }}:ci
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
