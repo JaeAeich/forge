@@ -76,23 +76,23 @@ def scroll(page: Page, dy: int, pause: int = 1400) -> None:
 def tour(page: Page) -> None:
     page.goto(f"{BASE}/#/overview")
     page.wait_for_selector(".stat")
-    caption(page, "Forge turns real bug fixes from open-source repos into practice tasks for coding agents", 2600)
+    caption(page, "Forge turns bug fixes into practice problems for coding agents.", 2600)
 
     # tasks
     press(page, "g", "t", pause=300)
-    caption(page, "A task is kept only if its tests fail before the fix, pass after, and do so every time", 2200)
+    caption(page, "Each task is a bug someone fixed, with a test the agent can't see.", 2200)
     press(page, "2", pause=700)  # solved filter
     press(page, "j", "Enter", pause=900)
-    caption(page, "Each task: a bug report, hidden tests, the real fix, and how agents did on it", 1800)
+    caption(page, "We only keep a task if its test fails before the fix and passes after it.", 2000)
     press(page, "x", pause=600)  # expand every section
     scroll(page, 700, 1800)
 
-    # rollouts
+    # attempts
     press(page, "g", "r", pause=300)
-    caption(page, "Agents attempt tasks in isolated sandboxes, one tool call per step", 1600)
+    caption(page, "An agent then tries to fix the bug in its own sandbox.", 1800)
     page.goto(f"{BASE}/#/rollout/7")
     page.wait_for_selector("details.step")
-    caption(page, "The sandbox is snapshotted after every step, so any attempt can be rewound and replayed", 1400)
+    caption(page, "We save every step so that you can go back and replay any attempt.", 1200)
     scroll(page, 600, 600)
     edit = page.locator("details.step summary", has_text="replace")
     (edit.first if edit.count() else page.locator("details.step summary").first).click()
@@ -101,35 +101,30 @@ def tour(page: Page) -> None:
     page.wait_for_selector(".tree", state="attached")
     press(page, "x", pause=300)  # expand every section
     page.locator(".tree").scroll_into_view_if_needed()
-    caption(page, "Failed attempts get forked from their midpoint: same history, a different future", 2600)
+    caption(page, "If an attempt fails, it can try again from halfway through.", 2600)
 
-    # grading and hacks
+    # honest grading
     press(page, "Meta+k", pause=300)
     type_slow(page, "hack", pause=500)
     press(page, "ArrowDown", "Enter", pause=500)
-    caption(page, "Grading runs in a fresh sandbox the agent never touched; cheating is flagged with evidence", 2800)
+    caption(page, "Sometimes an agent tries to cheat instead of fixing the bug.", 2400)
+    caption(page, "Forge checks the work in a clean copy, so the cheat gets caught.", 2400)
     press(page, "g", "q", pause=300)
-    caption(page, "Known cheats are planted in every task: a naive grader falls for them, forge's doesn't", 3000)
+    caption(page, "We plant known cheats in every task. A simple grader falls for all of them, forge for none.", 3000)
 
-    # code index
+    # code search
     press(page, "g", "i", pause=300)
-    caption(page, "Code search by meaning (EmbeddingGemma + pgvector), also used to spot leaked tasks", 600)
+    caption(page, "You can search the code by meaning and spot tasks that may have leaked.", 600)
     press(page, "/", pause=200)
     type_slow(page, "parse a date string", pause=200)
     press(page, "Enter", pause=2600)
     press(page, "Escape", pause=200)  # leave the search box so shortcuts work again
 
-    # environments, jobs, benchmarks
+    # environments
     press(page, "g", "e", pause=300)
-    caption(page, "Multi-service environments (app + Postgres + Redis) snapshot and fork as one unit", 2600)
-    press(page, "g", "j", pause=300)
-    caption(page, "A durable job queue: Postgres decides who runs what, so no job runs twice or gets lost", 2600)
-    press(page, "g", "b", pause=300)
-    caption(
-        page, "Measured: 0 duplicate jobs after killing workers 21 times, 2,300 jobs/s, 100k simulated agents", 2600
-    )
-    scroll(page, 600, 800)
-    caption(page, "Runs on a laptop with Docker, or on Kubernetes with a sandbox operator. ⌘K to go anywhere.", 2800)
+    caption(page, "Whole apps, databases included, can be saved and copied too.", 2800)
+    press(page, "g", "o", pause=300)
+    caption(page, "With forge, agents only get credit for real fixes.", 2400)
 
 
 def to_gif(video: Path, out: Path) -> None:
