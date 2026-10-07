@@ -32,7 +32,7 @@ def pct(xs: list[float], p: float) -> float | None:
 @contextmanager
 def scratch_db(name: str) -> Generator[str]:
     """A fresh Postgres database (same server as forge) for a benchmark; dropped afterwards."""
-    admin = db.connect()
+    admin = db.connect(vector=False)  # the server's default database may not be migrated
     admin.execute(sql.SQL("DROP DATABASE IF EXISTS {} WITH (FORCE)").format(sql.Identifier(name)))
     admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
     url = make_conninfo(config.DATABASE_URL, dbname=name)

@@ -58,6 +58,7 @@ jobs:
       - run: docker compose config -q
       - run: |
           kubectl kustomize deploy/k8s > rendered.yaml
+          echo --- >> rendered.yaml
           kubectl kustomize deploy/operator >> rendered.yaml
       - uses: docker://ghcr.io/yannh/kubeconform:latest
         with: { args: "-summary -strict -ignore-missing-schemas rendered.yaml" }

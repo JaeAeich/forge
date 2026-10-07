@@ -3,7 +3,6 @@ import { type Rollout, type RolloutRow, type Step, send, type TreeNode } from ".
 import { human, kindLabel, outcome, plural, useApi } from "../lib";
 import {
   Act,
-  Status,
   Card,
   Code,
   Diff,
@@ -17,6 +16,7 @@ import {
   Pad,
   Pass,
   Result,
+  Status,
   Table,
 } from "../ui";
 

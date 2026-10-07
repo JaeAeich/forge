@@ -2,7 +2,6 @@ import { send, type Task, type TaskRow } from "../api";
 import { human, kindLabel, pct, plural, useApi } from "../lib";
 import {
   Act,
-  Status,
   Card,
   Code,
   Diff,
@@ -15,6 +14,7 @@ import {
   Pass,
   Pill,
   Result,
+  Status,
   Table,
 } from "../ui";
 

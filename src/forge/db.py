@@ -41,10 +41,13 @@ def sql(text: str) -> LiteralString:
     return cast(LiteralString, _PARAM.sub("%s", text.replace("%", "%%")))
 
 
-def connect(url: str | None = None) -> Conn:
-    """A standalone connection (migrations, benchmarks). Application code uses the pool."""
+def connect(url: str | None = None, *, vector: bool = True) -> Conn:
+    """A standalone connection (migrations, benchmarks). Application code uses the pool.
+
+    vector=False for admin work on a database that may not have the pgvector extension yet."""
     c = cast(Conn, psycopg.connect(url or config.DATABASE_URL, autocommit=True, row_factory=dict_row))  # ty: ignore[invalid-argument-type]  (psycopg overload not resolved)
-    register_vector(c)
+    if vector:
+        register_vector(c)
     return c
 
 
